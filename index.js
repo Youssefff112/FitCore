@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
 import { connectDB } from './DB/connection.js';
-import { globalErrorHandler } from './Utils/globalErrorHandler.utils.js';
+import { globalErrorHandler } from './SRC/Utils/globalErrorHandler.utils.js';
 import appController from './app.controller.js';
 
 // Load environment variables
@@ -44,7 +44,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1', appController);
 
 // 404 Handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ 
     success: false, 
     message: `Route ${req.originalUrl} not found` 
