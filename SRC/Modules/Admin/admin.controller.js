@@ -43,7 +43,7 @@ export const adminController = {
   // Gym Management
   async createGym(req, res, next) {
     try {
-      const gym = await adminService.createGym(req.body, req.user._id);
+      const gym = await adminService.createGym(req.body, req.user.id);
       successResponse(res, 201, 'Gym created successfully', { gym });
     } catch (error) {
       next(error);
@@ -71,7 +71,7 @@ export const adminController = {
   // Exercise Management
   async createExercise(req, res, next) {
     try {
-      const exercise = await adminService.createExercise(req.body, req.user._id);
+      const exercise = await adminService.createExercise(req.body, req.user.id);
       successResponse(res, 201, 'Exercise created successfully', { exercise });
     } catch (error) {
       next(error);

@@ -3,11 +3,11 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
-import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
 import { connectDB } from './DB/connection.js';
 import { globalErrorHandler } from './SRC/Utils/globalErrorHandler.utils.js';
 import appController from './app.controller.js';
+import { startNotificationScheduler } from './SRC/Modules/Notification/notification.scheduler.js';
 
 // Load environment variables
 dotenv.config();
@@ -21,7 +21,6 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
 }));
-app.use(mongoSanitize()); // Prevent NoSQL injection
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -58,6 +57,7 @@ app.use(globalErrorHandler);
 const startServer = async () => {
   try {
     await connectDB();
+    startNotificationScheduler();
     app.listen(PORT, () => {
       console.log(`✅ FitCore Backend running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

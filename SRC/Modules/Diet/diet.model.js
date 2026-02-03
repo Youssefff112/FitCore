@@ -1,95 +1,104 @@
-    // src/Modules/Diet/diet.model.js
-import mongoose from 'mongoose';
+// src/Modules/Diet/diet.model.js
+import { DataTypes, Model } from 'sequelize';
+import { sequelize } from '../../../DB/connection.js';
 
-const dietPlanSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+export class DietPlan extends Model {}
+export class DietLog extends Model {}
+
+DietPlan.init({
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
-  
   goal: {
-    type: String,
-    enum: ['weight_loss', 'muscle_gain', 'maintenance', 'endurance'],
-    required: true
+    type: DataTypes.ENUM('weight_loss', 'muscle_gain', 'maintenance', 'endurance'),
+    allowNull: false
   },
-  
   dietaryPreference: {
-    type: String,
-    enum: ['none', 'vegetarian', 'vegan', 'gluten_free', 'keto', 'paleo'],
-    default: 'none'
+    type: DataTypes.ENUM('none', 'vegetarian', 'vegan', 'gluten_free', 'keto', 'paleo'),
+    defaultValue: 'none'
   },
-  
   dailyCalorieTarget: {
-    type: Number,
-    required: true,
-    min: 1000,
-    max: 6000
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
-  
   macronutrients: {
-    protein: { type: Number, required: true }, // grams
-    carbs: { type: Number, required: true }, // grams
-    fats: { type: Number, required: true } // grams
+    type: DataTypes.JSONB,
+    allowNull: false
   },
-  
-  weeklyMealPlan: [{
-    day: {
-      type: String,
-      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-      required: true
-    },
-    meals: [{
-      type: {
-        type: String,
-        enum: ['breakfast', 'lunch', 'dinner', 'snack'],
-        required: true
-      },
-      name: { type: String, required: true },
-      description: String,
-      ingredients: [{ type: String }],
-      nutrition: {
-        calories: Number,
-        protein: Number,
-        carbs: Number,
-        fats: Number
-      },
-      preparationTime: Number, // minutes
-      recipe: String
-    }]
-  }],
-  
+  weeklyMealPlan: {
+    type: DataTypes.JSONB,
+    allowNull: false
+  },
   hydrationGoal: {
-    type: Number,
-    default: 2500 // ml per day
+    type: DataTypes.INTEGER,
+    defaultValue: 2500
   },
-  
-  supplements: [{
-    name: String,
-    dosage: String,
-    timing: String
-  }],
-  
+  supplements: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   weekStartDate: {
-    type: Date,
-    required: true
+    type: DataTypes.DATE,
+    allowNull: false
   },
-  
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
-  
   generatedAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
-}, { 
-  timestamps: true 
+}, {
+  sequelize,
+  modelName: 'DietPlan',
+  tableName: 'diet_plans',
+  timestamps: true,
+  indexes: [
+    { fields: ['userId', 'isActive'] },
+    { fields: ['weekStartDate'] }
+  ]
 });
 
-// Indexes
-dietPlanSchema.index({ user: 1, isActive: 1 });
-dietPlanSchema.index({ weekStartDate: -1 });
-
-export const DietPlan = mongoose.model('DietPlan', dietPlanSchema);
+DietLog.init({
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  dietPlanId: {
+    type: DataTypes.INTEGER
+  },
+  date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  mealsCompleted: {
+    type: DataTypes.JSONB,
+    defaultValue: {}
+  },
+  caloriesConsumed: {
+    type: DataTypes.INTEGER
+  },
+  macrosConsumed: {
+    type: DataTypes.JSONB,
+    defaultValue: {}
+  },
+  notes: {
+    type: DataTypes.TEXT
+  },
+  status: {
+    type: DataTypes.ENUM('followed', 'partial', 'missed'),
+    defaultValue: 'partial'
+  }
+}, {
+  sequelize,
+  modelName: 'DietLog',
+  tableName: 'diet_logs',
+  timestamps: true,
+  indexes: [
+    { fields: ['userId', 'date'] },
+    { fields: ['dietPlanId'] }
+  ]
+});

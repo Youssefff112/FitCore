@@ -8,5 +8,7 @@ router.use(authenticate);
 
 router.post('/generate', dietController.generatePlan);
 router.get('/active', dietController.getActivePlan);
+router.post('/track', dietController.logDietDay);
+router.get('/history', dietController.getHistory);
 
 export default router;

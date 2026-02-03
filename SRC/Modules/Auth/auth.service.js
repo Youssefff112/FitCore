@@ -3,13 +3,14 @@ import { User } from '../User/user.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
 import { sendWelcomeEmail, sendPasswordResetEmail } from '../../Utils/Emails/sendEmail.utils.js';
 import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 
 export const authService = {
   async register(userData) {
     const { email, password, confirmPassword, ...rest } = userData;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       throw new AppError('User with this email already exists', 400);
     }
@@ -29,7 +30,10 @@ export const authService = {
 
   async login(email, password) {
     // Find user and include password
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.unscoped().findOne({
+      where: { email },
+      attributes: { include: ['password', 'refreshToken', 'passwordResetToken', 'passwordResetExpires'] }
+    });
     
     if (!user || !(await user.comparePassword(password))) {
       throw new AppError('Invalid email or password', 401);
@@ -45,7 +49,7 @@ export const authService = {
 
     // Save refresh token
     user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     return { user, token, refreshToken };
   },
@@ -57,7 +61,7 @@ export const authService = {
         process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
       );
 
-      const user = await User.findById(decoded.userId);
+      const user = await User.unscoped().findByPk(decoded.userId);
       if (!user || user.refreshToken !== refreshToken || !user.isActive) {
         throw new AppError('Invalid refresh token', 401);
       }
@@ -68,7 +72,7 @@ export const authService = {
 
       // Save new refresh token
       user.refreshToken = newRefreshToken;
-      await user.save({ validateBeforeSave: false });
+      await user.save();
 
       return { token, newRefreshToken };
     } catch (error) {
@@ -80,21 +84,21 @@ export const authService = {
   },
 
   async forgotPassword(email) {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       // Don't reveal if user exists for security
       return;
     }
 
     const resetToken = user.generatePasswordResetToken();
-    await user.save({ validateBeforeSave: false });
+    await user.save();
 
     try {
       await sendPasswordResetEmail(user, resetToken);
     } catch (error) {
-      user.passwordResetToken = undefined;
-      user.passwordResetExpires = undefined;
-      await user.save({ validateBeforeSave: false });
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save();
       throw new AppError('Error sending email. Please try again later.', 500);
     }
   },
@@ -108,11 +112,14 @@ export const authService = {
       throw new AppError('Invalid or expired reset token', 400);
     }
 
-    const user = await User.findOne({
-      _id: decoded.userId,
-      passwordResetToken: token,
-      passwordResetExpires: { $gt: Date.now() }
-    }).select('+password');
+    const user = await User.unscoped().findOne({
+      where: {
+        id: decoded.userId,
+        passwordResetToken: token,
+        passwordResetExpires: { [Op.gt]: new Date() }
+      },
+      attributes: { include: ['password', 'passwordResetToken', 'passwordResetExpires'] }
+    });
 
     if (!user) {
       throw new AppError('Invalid or expired reset token', 400);
@@ -120,17 +127,15 @@ export const authService = {
 
     // Update password
     user.password = password;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
     await user.save();
 
     return user;
   },
 
   async logout(userId) {
-    await User.findByIdAndUpdate(userId, {
-      refreshToken: undefined
-    });
+    await User.update({ refreshToken: null }, { where: { id: userId } });
   }
 };
 

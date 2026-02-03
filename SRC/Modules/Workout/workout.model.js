@@ -1,126 +1,100 @@
 // src/Modules/Workout/workout.model.js
-import mongoose from 'mongoose';
+import { DataTypes, Model } from 'sequelize';
+import { sequelize } from '../../../DB/connection.js';
 
-const workoutPlanSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+export class WorkoutPlan extends Model {}
+export class WorkoutLog extends Model {}
+
+WorkoutPlan.init({
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   goal: {
-    type: String,
-    enum: ['weight_loss', 'muscle_gain', 'maintenance', 'endurance'],
-    required: true
+    type: DataTypes.ENUM('weight_loss', 'muscle_gain', 'maintenance', 'endurance'),
+    allowNull: false
   },
   experienceLevel: {
-    type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    required: true
+    type: DataTypes.ENUM('beginner', 'intermediate', 'advanced'),
+    allowNull: false
   },
-  weeklySchedule: [{
-    day: {
-      type: String,
-      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-      required: true
-    },
-    isRestDay: {
-      type: Boolean,
-      default: false
-    },
-    focus: {
-      type: String,
-      enum: ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'glutes', 'cardio', 'full_body', 'rest']
-    },
-    exercises: [{
-      exercise: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Exercise'
-      },
-      name: String, // Fallback if exercise is deleted
-      sets: Number,
-      reps: {
-        type: String, // Can be "10-12" or "30 seconds" etc.
-        required: true
-      },
-      weight: Number, // Optional, in kg
-      restTime: Number, // in seconds
-      notes: String
-    }],
-    duration: Number, // Estimated duration in minutes
-    calories: Number // Estimated calories burned
-  }],
+  weeklySchedule: {
+    type: DataTypes.JSONB,
+    allowNull: false
+  },
   weekStartDate: {
-    type: Date,
-    required: true
+    type: DataTypes.DATE,
+    allowNull: false
   },
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
   generatedAt: {
-    type: Date,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
-  timestamps: true
+  sequelize,
+  modelName: 'WorkoutPlan',
+  tableName: 'workout_plans',
+  timestamps: true,
+  indexes: [
+    { fields: ['userId', 'isActive'] },
+    { fields: ['weekStartDate'] }
+  ]
 });
 
-// Indexes
-workoutPlanSchema.index({ user: 1, isActive: 1 });
-workoutPlanSchema.index({ weekStartDate: -1 });
-
-const workoutLogSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+WorkoutLog.init({
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
-  workoutPlan: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'WorkoutPlan'
+  workoutPlanId: {
+    type: DataTypes.INTEGER
   },
   date: {
-    type: Date,
-    required: true,
-    default: Date.now
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  startTime: {
+    type: DataTypes.DATE
+  },
+  endTime: {
+    type: DataTypes.DATE
   },
   day: {
-    type: String,
-    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-    required: true
+    type: DataTypes.ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
+    allowNull: false
   },
-  exercises: [{
-    exercise: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Exercise'
-    },
-    name: String,
-    sets: [{
-      reps: Number,
-      weight: Number,
-      completed: {
-        type: Boolean,
-        default: true
-      }
-    }],
-    notes: String
-  }],
-  duration: Number, // Actual duration in minutes
-  calories: Number, // Actual calories burned
-  notes: String,
+  exercises: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
+  duration: {
+    type: DataTypes.INTEGER
+  },
+  calories: {
+    type: DataTypes.INTEGER
+  },
+  notes: {
+    type: DataTypes.TEXT
+  },
   rating: {
-    type: Number,
-    min: 1,
-    max: 5
+    type: DataTypes.INTEGER
+  },
+  status: {
+    type: DataTypes.ENUM('in_progress', 'completed', 'cancelled'),
+    defaultValue: 'completed'
   }
 }, {
-  timestamps: true
+  sequelize,
+  modelName: 'WorkoutLog',
+  tableName: 'workout_logs',
+  timestamps: true,
+  indexes: [
+    { fields: ['userId', 'date'] },
+    { fields: ['workoutPlanId'] }
+  ]
 });
-
-// Indexes
-workoutLogSchema.index({ user: 1, date: -1 });
-workoutLogSchema.index({ workoutPlan: 1 });
-
-export const WorkoutPlan = mongoose.model('WorkoutPlan', workoutPlanSchema);
-export const WorkoutLog = mongoose.model('WorkoutLog', workoutLogSchema);
 

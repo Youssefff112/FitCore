@@ -7,6 +7,7 @@ import dietRoutes from './SRC/Modules/Diet/diet.routes.js';
 import workoutRoutes from './SRC/Modules/Workout/workout.routes.js';
 import gymRoutes from './SRC/Modules/Gym/gym.routes.js';
 import notificationRoutes from './SRC/Modules/Notification/notification.routes.js';
+import exerciseRoutes from './SRC/Modules/Exercise/exercise.routes.js';
 
 const router = Router();
 
@@ -17,6 +18,7 @@ router.use('/admin', adminRoutes);
 router.use('/diet', dietRoutes);
 router.use('/workout', workoutRoutes);
 router.use('/gyms', gymRoutes);
+router.use('/exercises', exerciseRoutes);
 router.use('/notifications', notificationRoutes);
 
 export default router;

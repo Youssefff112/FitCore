@@ -19,4 +19,18 @@ router.post('/send-reminders',
   }
 );
 
+// Admin endpoint to schedule a notification
+router.post('/schedule',
+  authenticate,
+  restrictTo('admin'),
+  async (req, res, next) => {
+    try {
+      const notification = await notificationService.scheduleNotification(req.body);
+      successResponse(res, 201, 'Notification scheduled', { notification });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

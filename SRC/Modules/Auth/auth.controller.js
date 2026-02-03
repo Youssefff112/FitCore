@@ -11,11 +11,11 @@ export const authController = {
       
       // Save refresh token
       user.refreshToken = refreshToken;
-      await user.save({ validateBeforeSave: false });
+      await user.save();
 
       successResponse(res, 201, 'User registered successfully', {
         user: {
-          _id: user._id,
+          _id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -37,7 +37,7 @@ export const authController = {
       
       successResponse(res, 200, 'Login successful', {
         user: {
-          _id: user._id,
+          _id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -91,7 +91,7 @@ export const authController = {
 
   async logout(req, res, next) {
     try {
-      await authService.logout(req.user._id);
+      await authService.logout(req.user.id);
       successResponse(res, 200, 'Logged out successfully');
     } catch (error) {
       next(error);

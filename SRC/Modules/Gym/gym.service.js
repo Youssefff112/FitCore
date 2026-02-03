@@ -1,34 +1,42 @@
 // src/Modules/Gym/gym.service.js
 import { Gym } from './gym.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
+import { Op, Sequelize } from 'sequelize';
+import { sequelize } from '../../../DB/connection.js';
 
 export const gymService = {
   // Search and filter gyms (FR-2.1, FR-2.2)
   async searchGyms(filters) {
-    const query = { isActive: true };
+    const where = { isActive: true };
+    const whereClauses = [];
 
     // Filter by city/area
     if (filters.city) {
-      query['location.city'] = filters.city;
+      whereClauses.push(
+        Sequelize.where(Sequelize.json('location.city'), filters.city)
+      );
     }
     if (filters.area) {
-      query['location.area'] = { $regex: filters.area, $options: 'i' };
+      whereClauses.push(
+        Sequelize.where(Sequelize.json('location.area'), { [Op.iLike]: `%${filters.area}%` })
+      );
     }
 
     // Search by name
     if (filters.name) {
-      query.name = { $regex: filters.name, $options: 'i' };
+      where.name = { [Op.iLike]: `%${filters.name}%` };
     }
 
     // Filter by equipment
     if (filters.equipment && filters.equipment.length > 0) {
-      query.equipment = { $all: filters.equipment };
+      where.equipment = { [Op.contains]: filters.equipment };
     }
 
     // Filter by open now
     if (filters.openNow === 'true') {
-      // This is a simplified check; real implementation would be more complex
-      query['operatingHours.is24_7'] = true;
+      whereClauses.push(
+        Sequelize.where(Sequelize.json('operatingHours.is24_7'), true)
+      );
     }
 
     // Pagination
@@ -36,12 +44,22 @@ export const gymService = {
     const limit = parseInt(filters.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const gyms = await Gym.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ 'rating.average': -1 });
+    const gyms = await Gym.findAll({
+      where: {
+        ...where,
+        ...(whereClauses.length ? { [Op.and]: whereClauses } : {})
+      },
+      offset: skip,
+      limit,
+      order: [[Sequelize.literal("(rating->>'average')::float"), 'DESC']]
+    });
 
-    const total = await Gym.countDocuments(query);
+    const total = await Gym.count({
+      where: {
+        ...where,
+        ...(whereClauses.length ? { [Op.and]: whereClauses } : {})
+      }
+    });
 
     return {
       gyms,
@@ -56,13 +74,13 @@ export const gymService = {
 
   // Get gym details (FR-2.3)
   async getGymById(gymId) {
-    const gym = await Gym.findById(gymId);
+    const gym = await Gym.findByPk(gymId);
     if (!gym || !gym.isActive) {
       throw new AppError('Gym not found', 404);
     }
 
     // Add isOpenNow to response
-    const gymObj = gym.toObject();
+    const gymObj = gym.toJSON();
     gymObj.isOpenNow = gym.isOpenNow();
 
     return gymObj;
@@ -70,18 +88,33 @@ export const gymService = {
 
   // Get gyms near location (geospatial search)
   async getGymsNearby(longitude, latitude, maxDistance = 5000) {
-    const gyms = await Gym.find({
-      'location.coordinates': {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [longitude, latitude]
-          },
-          $maxDistance: maxDistance // meters
-        }
-      },
-      isActive: true
-    }).limit(20);
+    if (Number.isNaN(longitude) || Number.isNaN(latitude)) {
+      throw new AppError('Invalid coordinates', 400);
+    }
+
+    const distanceLimit = Math.max(0, Number(maxDistance) || 5000);
+    const query = `
+      SELECT *
+      FROM (
+        SELECT *,
+          (6371000 * acos(
+            cos(radians(:lat)) * cos(radians(latitude)) *
+            cos(radians(longitude) - radians(:lng)) +
+            sin(radians(:lat)) * sin(radians(latitude))
+          )) AS distance
+        FROM gyms
+        WHERE "isActive" = true
+          AND latitude IS NOT NULL
+          AND longitude IS NOT NULL
+      ) AS distance_calc
+      WHERE distance <= :maxDistance
+      ORDER BY distance ASC
+      LIMIT 20
+    `;
+
+    const [gyms] = await sequelize.query(query, {
+      replacements: { lat: latitude, lng: longitude, maxDistance: distanceLimit }
+    });
 
     return gyms;
   }

@@ -4,7 +4,7 @@ import { AppError } from '../../Utils/appError.utils.js';
 
 export const userService = {
   async getProfile(userId) {
-    const user = await User.findById(userId).select('-password -refreshToken -passwordResetToken');
+    const user = await User.findByPk(userId);
     if (!user) {
       throw new AppError('User not found', 404);
     }
@@ -12,11 +12,8 @@ export const userService = {
   },
 
   async updateProfile(userId, updates) {
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).select('-password -refreshToken -passwordResetToken');
+    await User.update(updates, { where: { id: userId } });
+    const user = await User.findByPk(userId);
 
     if (!user) {
       throw new AppError('User not found', 404);
@@ -26,7 +23,7 @@ export const userService = {
   },
 
   async completeOnboarding(userId, data) {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       throw new AppError('User not found', 404);
     }
@@ -43,16 +40,13 @@ export const userService = {
     };
 
     await user.save();
-    const updatedUser = await User.findById(userId).select('-password -refreshToken -passwordResetToken');
+    const updatedUser = await User.findByPk(userId);
     return updatedUser;
   },
 
   async deleteAccount(userId) {
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { isActive: false },
-      { new: true }
-    );
+    await User.update({ isActive: false }, { where: { id: userId } });
+    const user = await User.findByPk(userId);
 
     if (!user) {
       throw new AppError('User not found', 404);

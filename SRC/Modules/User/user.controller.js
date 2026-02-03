@@ -5,7 +5,7 @@ import { successResponse } from '../../Utils/successResponse.utils.js';
 export const userController = {
   async getProfile(req, res, next) {
     try {
-      const user = await userService.getProfile(req.user._id);
+      const user = await userService.getProfile(req.user.id);
       successResponse(res, 200, 'Profile retrieved successfully', { user });
     } catch (error) {
       next(error);
@@ -14,7 +14,7 @@ export const userController = {
 
   async updateProfile(req, res, next) {
     try {
-      const user = await userService.updateProfile(req.user._id, req.body);
+      const user = await userService.updateProfile(req.user.id, req.body);
       successResponse(res, 200, 'Profile updated successfully', { user });
     } catch (error) {
       next(error);
@@ -23,7 +23,7 @@ export const userController = {
 
   async completeOnboarding(req, res, next) {
     try {
-      const user = await userService.completeOnboarding(req.user._id, req.body);
+      const user = await userService.completeOnboarding(req.user.id, req.body);
       successResponse(res, 200, 'Onboarding completed successfully', { user });
     } catch (error) {
       next(error);
@@ -32,7 +32,7 @@ export const userController = {
 
   async deleteAccount(req, res, next) {
     try {
-      await userService.deleteAccount(req.user._id);
+      await userService.deleteAccount(req.user.id);
       successResponse(res, 200, 'Account deleted successfully');
     } catch (error) {
       next(error);

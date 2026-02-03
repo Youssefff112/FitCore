@@ -1,64 +1,65 @@
 // src/Modules/Exercise/exercise.model.js
-import mongoose from 'mongoose';
+import { DataTypes, Model } from 'sequelize';
+import { sequelize } from '../../../DB/connection.js';
 
-const exerciseSchema = new mongoose.Schema({
+export class Exercise extends Model {}
+
+Exercise.init({
   name: {
-    type: String,
-    required: [true, 'Exercise name is required'],
-    trim: true
+    type: DataTypes.STRING(120),
+    allowNull: false
   },
   description: {
-    type: String,
-    trim: true
+    type: DataTypes.TEXT
   },
   category: {
-    type: String,
-    enum: ['cardio', 'strength', 'flexibility', 'balance', 'sports', 'other'],
-    required: true
+    type: DataTypes.ENUM('cardio', 'strength', 'flexibility', 'balance', 'sports', 'other'),
+    allowNull: false
   },
-  muscleGroups: [{
-    type: String,
-    enum: ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'glutes', 'cardio', 'full_body']
-  }],
-  equipment: [{
-    type: String,
-    enum: ['bodyweight', 'dumbbells', 'barbell', 'kettlebell', 'resistance_bands', 'cable', 'machine', 'cardio_machine', 'yoga_mat', 'pull_up_bar', 'other']
-  }],
+  muscleGroups: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
+  equipment: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   difficulty: {
-    type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    default: 'beginner'
+    type: DataTypes.ENUM('beginner', 'intermediate', 'advanced'),
+    defaultValue: 'beginner'
   },
-  instructions: [{
-    type: String
-  }],
-  tips: [{
-    type: String
-  }],
-  images: [{
-    type: String
-  }],
-  videos: [{
-    type: String
-  }],
+  instructions: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
+  tips: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
+  images: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
+  videos: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    type: DataTypes.INTEGER
   },
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
-  timestamps: true
+  sequelize,
+  modelName: 'Exercise',
+  tableName: 'exercises',
+  timestamps: true,
+  indexes: [
+    { fields: ['name'] },
+    { fields: ['category'] },
+    { fields: ['isActive'] }
+  ]
 });
-
-// Indexes
-exerciseSchema.index({ name: 1 });
-exerciseSchema.index({ category: 1 });
-exerciseSchema.index({ muscleGroups: 1 });
-exerciseSchema.index({ equipment: 1 });
-exerciseSchema.index({ isActive: 1 });
-
-export const Exercise = mongoose.model('Exercise', exerciseSchema);
 

@@ -1,20 +1,36 @@
 // src/DB/connection.js
-import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import { Sequelize } from 'sequelize';
+
+// Ensure env vars are loaded before Sequelize is initialized
+dotenv.config();
+
+export const sequelize = new Sequelize(process.env.DATABASE_URL, {
+  dialect: 'postgres',
+  logging: process.env.NODE_ENV === 'development' ? console.log : false
+});
 
 export const connectDB = async () => {
   try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is not set. Add it to your .env file.');
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL is not set. Add it to your .env file.');
     }
 
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      // Mongoose 6+ no longer needs these options, but keeping for compatibility
-    });
+    // Load models to ensure they are registered before sync
+    await import('../SRC/Modules/User/user.model.js');
+    await import('../SRC/Modules/Gym/gym.model.js');
+    await import('../SRC/Modules/Exercise/exercise.model.js');
+    await import('../SRC/Modules/Diet/diet.model.js');
+    await import('../SRC/Modules/Workout/workout.model.js');
+    await import('../SRC/Modules/Notification/notification.model.js');
 
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    return conn;
+    await sequelize.authenticate();
+    await sequelize.sync();
+
+    console.log('✅ PostgreSQL Connected');
+    return sequelize;
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
+    console.error('❌ PostgreSQL connection error:', error.message);
     process.exit(1);
   }
 };

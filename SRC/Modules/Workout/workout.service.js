@@ -1,12 +1,11 @@
 // src/Modules/Workout/workout.service.js
 import { WorkoutPlan, WorkoutLog } from './workout.model.js';
 import { User } from '../User/user.model.js';
-import { Exercise } from '../Exercise/exercise.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
 
 export const workoutService = {
   async generateWorkoutPlan(userId) {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user || !user.profile || !user.profile.goal || !user.profile.experienceLevel) {
       throw new AppError('Please complete your profile first', 400);
     }
@@ -14,16 +13,16 @@ export const workoutService = {
     const { goal, experienceLevel, userType, profile } = user;
 
     // Deactivate previous plans
-    await WorkoutPlan.updateMany(
-      { user: userId, isActive: true },
-      { isActive: false }
+    await WorkoutPlan.update(
+      { isActive: false },
+      { where: { userId, isActive: true } }
     );
 
     // Generate weekly schedule based on goal and experience
     const weeklySchedule = this._generateWeeklySchedule(goal, experienceLevel, userType, profile?.homeEquipment || []);
 
     const workoutPlan = await WorkoutPlan.create({
-      user: userId,
+      userId,
       goal,
       experienceLevel,
       weeklySchedule,
@@ -34,10 +33,7 @@ export const workoutService = {
   },
 
   async getActiveWorkoutPlan(userId) {
-    const plan = await WorkoutPlan.findOne({
-      user: userId,
-      isActive: true
-    }).populate('weeklySchedule.exercises.exercise');
+    const plan = await WorkoutPlan.findOne({ where: { userId, isActive: true } });
 
     if (!plan) {
       throw new AppError('No active workout plan found. Please generate a new plan.', 404);
@@ -50,29 +46,81 @@ export const workoutService = {
     const { date, day, exercises, duration, calories, notes, rating } = logData;
 
     const workoutLog = await WorkoutLog.create({
-      user: userId,
+      userId,
       date: date || new Date(),
       day,
       exercises,
       duration,
       calories,
       notes,
-      rating
+      rating,
+      status: 'completed'
     });
 
     return workoutLog;
   },
 
+  async startWorkoutSession(userId, data) {
+    const { day, workoutPlanId } = data || {};
+    const startTime = new Date();
+    const sessionDay = day || startTime.toLocaleDateString('en-US', { weekday: 'lowercase' });
+
+    const existingSession = await WorkoutLog.findOne({
+      where: { userId, status: 'in_progress' }
+    });
+    if (existingSession) {
+      throw new AppError('A workout session is already in progress.', 400);
+    }
+
+    const session = await WorkoutLog.create({
+      userId,
+      workoutPlanId,
+      date: startTime,
+      startTime,
+      day: sessionDay,
+      status: 'in_progress'
+    });
+
+    return session;
+  },
+
+  async finishWorkoutSession(userId, logId, data) {
+    const { exercises, calories, notes, rating, status, endTime } = data || {};
+    const session = await WorkoutLog.findOne({
+      where: { id: logId, userId, status: 'in_progress' }
+    });
+    if (!session) {
+      throw new AppError('Active workout session not found.', 404);
+    }
+
+    const finishTime = endTime ? new Date(endTime) : new Date();
+    const durationMinutes = session.startTime
+      ? Math.max(0, Math.round((finishTime - session.startTime) / 60000))
+      : null;
+
+    session.endTime = finishTime;
+    session.duration = durationMinutes ?? session.duration;
+    if (exercises !== undefined) session.exercises = exercises;
+    if (calories !== undefined) session.calories = calories;
+    if (notes !== undefined) session.notes = notes;
+    if (rating !== undefined) session.rating = rating;
+    session.status = status === 'cancelled' ? 'cancelled' : 'completed';
+
+    await session.save();
+    return session;
+  },
+
   async getWorkoutHistory(userId, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
-    const logs = await WorkoutLog.find({ user: userId })
-      .populate('exercises.exercise')
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit);
+    const logs = await WorkoutLog.findAll({
+      where: { userId },
+      order: [['date', 'DESC']],
+      offset: skip,
+      limit
+    });
 
-    const total = await WorkoutLog.countDocuments({ user: userId });
+    const total = await WorkoutLog.count({ where: { userId } });
 
     return {
       logs,

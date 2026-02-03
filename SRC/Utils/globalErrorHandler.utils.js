@@ -1,21 +1,18 @@
 // src/Utils/globalErrorHandler.utils.js
 import { AppError } from './appError.utils.js';
 
-const handleCastErrorDB = (err) => {
-  const message = `Invalid ${err.path}: ${err.value}`;
-  return new AppError(message, 400);
-};
-
-const handleDuplicateFieldsDB = (err) => {
-  const field = Object.keys(err.keyValue)[0];
-  const value = err.keyValue[field];
-  const message = `Duplicate field value: ${field} with value '${value}'. Please use another value.`;
-  return new AppError(message, 400);
-};
-
-const handleValidationErrorDB = (err) => {
-  const errors = Object.values(err.errors).map(el => el.message);
+const handleSequelizeValidationError = (err) => {
+  const errors = err.errors?.map(el => el.message) || [];
   const message = `Invalid input data. ${errors.join('. ')}`;
+  return new AppError(message, 400);
+};
+
+const handleSequelizeUniqueError = (err) => {
+  const field = err.errors?.[0]?.path || 'field';
+  const value = err.errors?.[0]?.value;
+  const message = value
+    ? `Duplicate field value: ${field} with value '${value}'. Please use another value.`
+    : `Duplicate field value: ${field}. Please use another value.`;
   return new AppError(message, 400);
 };
 
@@ -67,9 +64,8 @@ export const globalErrorHandler = (err, req, res, next) => {
     error.message = err.message;
     error.name = err.name;
 
-    if (error.name === 'CastError') error = handleCastErrorDB(error);
-    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-    if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
+    if (error.name === 'SequelizeValidationError') error = handleSequelizeValidationError(error);
+    if (error.name === 'SequelizeUniqueConstraintError') error = handleSequelizeUniqueError(error);
     if (error.name === 'JsonWebTokenError') error = handleJWTError();
     if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
 

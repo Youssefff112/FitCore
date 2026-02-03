@@ -18,7 +18,7 @@ export const authenticate = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if user still exists
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findByPk(decoded.userId);
     if (!user) {
       throw new AppError('User no longer exists.', 401);
     }
@@ -75,7 +75,7 @@ export const optionalAuth = async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findByPk(decoded.userId);
     
     if (user && user.isActive) {
       req.user = user;

@@ -1,10 +1,11 @@
-import { DietPlan } from './diet.model.js';
+import { DietPlan, DietLog } from './diet.model.js';
 import { User } from '../User/user.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
+import { Op } from 'sequelize';
 
 export const dietService = {
   async generateDietPlan(userId) {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user || !user.profile || !user.profile.goal) {
       throw new AppError('Please complete your profile first', 400);
     }
@@ -12,9 +13,9 @@ export const dietService = {
     const { goal, currentWeight, height, age, gender, dietaryPreference } = user.profile;
 
     // Deactivate previous plans
-    await DietPlan.updateMany(
-      { user: userId, isActive: true },
-      { isActive: false }
+    await DietPlan.update(
+      { isActive: false },
+      { where: { userId, isActive: true } }
     );
 
     // Calculate daily calorie target
@@ -33,7 +34,7 @@ export const dietService = {
     );
 
     const dietPlan = await DietPlan.create({
-      user: userId,
+      userId,
       goal,
       dietaryPreference: dietaryPreference || 'none',
       dailyCalorieTarget,
@@ -46,16 +47,91 @@ export const dietService = {
   },
 
   async getActiveDietPlan(userId) {
-    const plan = await DietPlan.findOne({
-      user: userId,
-      isActive: true
-    });
+    const plan = await DietPlan.findOne({ where: { userId, isActive: true } });
 
     if (!plan) {
       throw new AppError('No active diet plan found. Please generate a new plan.', 404);
     }
 
     return plan;
+  },
+
+  async logDietDay(userId, data) {
+    const {
+      date,
+      mealsCompleted,
+      caloriesConsumed,
+      macrosConsumed,
+      notes,
+      status,
+      dietPlanId
+    } = data || {};
+
+    const activePlan = dietPlanId
+      ? await DietPlan.findByPk(dietPlanId)
+      : await DietPlan.findOne({ where: { userId, isActive: true } });
+
+    if (!activePlan) {
+      throw new AppError('No active diet plan found. Please generate a plan first.', 404);
+    }
+
+    const logDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(logDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(logDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingLog = await DietLog.findOne({
+      where: {
+        userId,
+        date: { [Op.between]: [startOfDay, endOfDay] }
+      }
+    });
+
+    if (existingLog) {
+      existingLog.mealsCompleted = mealsCompleted ?? existingLog.mealsCompleted;
+      if (caloriesConsumed !== undefined) existingLog.caloriesConsumed = caloriesConsumed;
+      if (macrosConsumed !== undefined) existingLog.macrosConsumed = macrosConsumed;
+      if (notes !== undefined) existingLog.notes = notes;
+      if (status !== undefined) existingLog.status = status;
+      existingLog.dietPlanId = activePlan.id;
+      await existingLog.save();
+      return existingLog;
+    }
+
+    const log = await DietLog.create({
+      userId,
+      dietPlanId: activePlan.id,
+      date: logDate,
+      mealsCompleted: mealsCompleted || {},
+      caloriesConsumed,
+      macrosConsumed: macrosConsumed || {},
+      notes,
+      status: status || 'partial'
+    });
+
+    return log;
+  },
+
+  async getDietHistory(userId, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+
+    const { rows, count } = await DietLog.findAndCountAll({
+      where: { userId },
+      order: [['date', 'DESC']],
+      offset,
+      limit
+    });
+
+    return {
+      logs: rows,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        pages: Math.ceil(count / limit)
+      }
+    };
   },
 
   // BMR calculation (Mifflin-St Jeor)
