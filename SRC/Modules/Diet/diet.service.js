@@ -5,45 +5,11 @@ import { Op } from 'sequelize';
 
 export const dietService = {
   async generateDietPlan(userId) {
-    const user = await User.findByPk(userId);
-    if (!user || !user.profile || !user.profile.goal) {
-      throw new AppError('Please complete your profile first', 400);
-    }
+    return this._generateDietPlanForUser(userId);
+  },
 
-    const { goal, currentWeight, height, age, gender, dietaryPreference } = user.profile;
-
-    // Deactivate previous plans
-    await DietPlan.update(
-      { isActive: false },
-      { where: { userId, isActive: true } }
-    );
-
-    // Calculate daily calorie target
-    const bmr = this._calculateBMR(currentWeight, height, age, gender);
-    const tdee = this._calculateTDEE(bmr, 'moderate'); // Assuming moderate activity
-    const dailyCalorieTarget = this._adjustCaloriesForGoal(tdee, goal);
-
-    // Calculate macros
-    const macros = this._calculateMacros(dailyCalorieTarget, goal);
-
-    // Generate weekly meal plan
-    const weeklyMealPlan = this._generateWeeklyMealPlan(
-      dailyCalorieTarget,
-      macros,
-      dietaryPreference
-    );
-
-    const dietPlan = await DietPlan.create({
-      userId,
-      goal,
-      dietaryPreference: dietaryPreference || 'none',
-      dailyCalorieTarget,
-      macronutrients: macros,
-      weeklyMealPlan,
-      weekStartDate: this._getStartOfWeek()
-    });
-
-    return dietPlan;
+  async generateDietPlanForUser(targetUserId, coachId) {
+    return this._generateDietPlanForUser(targetUserId, coachId);
   },
 
   async getActiveDietPlan(userId) {
@@ -132,6 +98,51 @@ export const dietService = {
         pages: Math.ceil(count / limit)
       }
     };
+  },
+
+  async _generateDietPlanForUser(userId, coachId = null) {
+    const user = await User.findByPk(userId);
+    if (!user || !user.profile || !user.profile.goal) {
+      throw new AppError('Please complete your profile first', 400);
+    }
+
+    const { goal, currentWeight, height, age, gender } = user.profile;
+    const dietaryPreference = user.profile.dietaryPreference || user.profile.dietaryPreferences;
+
+    // Deactivate previous plans
+    await DietPlan.update(
+      { isActive: false },
+      { where: { userId, isActive: true } }
+    );
+
+    // Calculate daily calorie target
+    const bmr = this._calculateBMR(currentWeight, height, age, gender);
+    const tdee = this._calculateTDEE(bmr, 'moderate'); // Assuming moderate activity
+    const dailyCalorieTarget = this._adjustCaloriesForGoal(tdee, goal);
+
+    // Calculate macros
+    const macros = this._calculateMacros(dailyCalorieTarget, goal);
+
+    // Generate weekly meal plan
+    const weeklyMealPlan = this._generateWeeklyMealPlan(
+      dailyCalorieTarget,
+      macros,
+      dietaryPreference
+    );
+
+    const dietPlan = await DietPlan.create({
+      userId,
+      goal,
+      dietaryPreference: dietaryPreference || 'none',
+      dailyCalorieTarget,
+      macronutrients: macros,
+      weeklyMealPlan,
+      assignedByCoachId: coachId || null,
+      assignedAt: coachId ? new Date() : null,
+      weekStartDate: this._getStartOfWeek()
+    });
+
+    return dietPlan;
   },
 
   // BMR calculation (Mifflin-St Jeor)

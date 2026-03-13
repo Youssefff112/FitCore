@@ -13,6 +13,7 @@ export const updateProfileSchema = Joi.object({
       goal: Joi.string().valid('weight_loss', 'muscle_gain', 'maintenance', 'endurance'),
       experienceLevel: Joi.string().valid('beginner', 'intermediate', 'advanced'),
       dietaryPreferences: Joi.string().valid('none', 'vegetarian', 'vegan', 'gluten_free', 'keto', 'paleo'),
+      dietaryPreference: Joi.string().valid('none', 'vegetarian', 'vegan', 'gluten_free', 'keto', 'paleo'),
       allergies: Joi.array().items(Joi.string()),
       homeEquipment: Joi.array().items(
         Joi.string().valid('none', 'dumbbells', 'resistance_bands', 'yoga_mat', 'pull_up_bar', 'kettlebell', 'barbell')
@@ -31,6 +32,7 @@ export const completeOnboardingSchema = Joi.object({
       goal: Joi.string().valid('weight_loss', 'muscle_gain', 'maintenance', 'endurance').required(),
       experienceLevel: Joi.string().valid('beginner', 'intermediate', 'advanced').required(),
       dietaryPreferences: Joi.string().valid('none', 'vegetarian', 'vegan', 'gluten_free', 'keto', 'paleo'),
+      dietaryPreference: Joi.string().valid('none', 'vegetarian', 'vegan', 'gluten_free', 'keto', 'paleo'),
       allergies: Joi.array().items(Joi.string()),
       homeEquipment: Joi.when('$userType', {
         is: 'offline',

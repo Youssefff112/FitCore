@@ -14,7 +14,8 @@ export const registerSchema = Joi.object({
       .messages({
         'any.only': 'Passwords do not match'
       }),
-    userType: Joi.string().valid('onsite', 'offline').required()
+    userType: Joi.string().valid('onsite', 'offline').required(),
+    role: Joi.string().valid('client', 'coach').default('client')
   })
 });
 

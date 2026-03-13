@@ -1,16 +1,17 @@
 import { Router } from 'express';
 import { workoutController } from './workout.controller.js';
-import { authenticate } from '../../Middlewares/auth.middleware.js';
+import { authenticate, restrictTo } from '../../Middlewares/auth.middleware.js';
+import { requireActiveSubscription } from '../../Middlewares/subscription.middleware.js';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, restrictTo('client'));
 
-router.post('/generate', workoutController.generatePlan);
-router.get('/active', workoutController.getActivePlan);
-router.post('/start', workoutController.startSession);
-router.post('/finish/:id', workoutController.finishSession);
-router.post('/log', workoutController.logWorkout);
-router.get('/history', workoutController.getHistory);
+router.post('/generate', requireActiveSubscription('client'), workoutController.generatePlan);
+router.get('/active', requireActiveSubscription('client'), workoutController.getActivePlan);
+router.post('/start', requireActiveSubscription('client'), workoutController.startSession);
+router.post('/finish/:id', requireActiveSubscription('client'), workoutController.finishSession);
+router.post('/log', requireActiveSubscription('client'), workoutController.logWorkout);
+router.get('/history', requireActiveSubscription('client'), workoutController.getHistory);
 
 export default router;

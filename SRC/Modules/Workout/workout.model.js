@@ -22,6 +22,12 @@ WorkoutPlan.init({
     type: DataTypes.JSONB,
     allowNull: false
   },
+  assignedByCoachId: {
+    type: DataTypes.INTEGER
+  },
+  assignedAt: {
+    type: DataTypes.DATE
+  },
   weekStartDate: {
     type: DataTypes.DATE,
     allowNull: false

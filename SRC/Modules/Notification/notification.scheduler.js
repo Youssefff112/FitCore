@@ -1,5 +1,6 @@
 // src/Modules/Notification/notification.scheduler.js
 import { notificationService } from './notification.service.js';
+import { subscriptionService } from '../Subscription/subscription.service.js';
 
 let intervalId = null;
 let isRunning = false;
@@ -9,6 +10,7 @@ const tick = async () => {
   isRunning = true;
   try {
     await notificationService.processScheduledNotifications();
+    await subscriptionService.cleanupExpired();
   } catch (error) {
     console.error('❌ Notification scheduler error:', error);
   } finally {

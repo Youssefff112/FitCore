@@ -30,6 +30,12 @@ DietPlan.init({
     type: DataTypes.JSONB,
     allowNull: false
   },
+  assignedByCoachId: {
+    type: DataTypes.INTEGER
+  },
+  assignedAt: {
+    type: DataTypes.DATE
+  },
   hydrationGoal: {
     type: DataTypes.INTEGER,
     defaultValue: 2500

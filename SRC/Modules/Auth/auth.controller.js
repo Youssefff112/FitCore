@@ -69,9 +69,19 @@ export const authController = {
   async forgotPassword(req, res, next) {
     try {
       const { email } = req.body;
-      await authService.forgotPassword(email);
-      
-      successResponse(res, 200, 'Password reset email sent. Please check your inbox.');
+      const resetToken = await authService.forgotPassword(email);
+
+      const responseData = {};
+      if (process.env.NODE_ENV !== 'production' || process.env.EMAIL_ENABLED === 'false') {
+        responseData.resetToken = resetToken;
+      }
+
+      successResponse(
+        res,
+        200,
+        'Password reset email sent. Please check your inbox.',
+        Object.keys(responseData).length ? responseData : null
+      );
     } catch (error) {
       next(error);
     }

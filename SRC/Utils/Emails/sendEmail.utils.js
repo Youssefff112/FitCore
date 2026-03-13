@@ -4,28 +4,37 @@ import nodemailer from 'nodemailer';
 const createTransporter = () => {
   if (process.env.NODE_ENV === 'production') {
     // Production email service (e.g., SendGrid, AWS SES)
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       service: process.env.EMAIL_SERVICE,
       auth: {
         user: process.env.EMAIL_USERNAME,
         pass: process.env.EMAIL_PASSWORD
       }
     });
-  } else {
-    // Development using Mailtrap or similar
-    return nodemailer.createTransporter({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
   }
+
+  // Development using Mailtrap or similar
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD
+    }
+  });
 };
 
 export const sendEmail = async ({ to, subject, html, text }) => {
   try {
+    if (process.env.EMAIL_ENABLED === 'false') {
+      return { skipped: true };
+    }
+
+    if (process.env.NODE_ENV !== 'production' && !process.env.EMAIL_HOST) {
+      console.warn('⚠️  Email skipped: EMAIL_HOST not configured');
+      return { skipped: true };
+    }
+
     const transporter = createTransporter();
 
     const mailOptions = {

@@ -18,11 +18,16 @@ export const connectDB = async () => {
 
     // Load models to ensure they are registered before sync
     await import('../SRC/Modules/User/user.model.js');
-    await import('../SRC/Modules/Gym/gym.model.js');
     await import('../SRC/Modules/Exercise/exercise.model.js');
     await import('../SRC/Modules/Diet/diet.model.js');
     await import('../SRC/Modules/Workout/workout.model.js');
     await import('../SRC/Modules/Notification/notification.model.js');
+    await import('../SRC/Modules/Coach/coach.model.js');
+    await import('../SRC/Modules/Client/client.model.js');
+    await import('../SRC/Modules/Subscription/subscription.model.js');
+    await import('../SRC/Modules/Progress/progress.model.js');
+    await import('../SRC/Modules/Vision/vision.model.js');
+    await import('../SRC/Modules/Chatbot/chatbot.model.js');
 
     await sequelize.authenticate();
     await sequelize.sync();

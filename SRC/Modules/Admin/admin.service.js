@@ -1,6 +1,7 @@
 import { User } from '../User/user.model.js';
-import { Gym } from '../Gym/gym.model.js';
 import { Exercise } from '../Exercise/exercise.model.js';
+import { CoachProfile } from '../Coach/coach.model.js';
+import { ClientProfile } from '../Client/client.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
 import { Op, fn, col } from 'sequelize';
 
@@ -8,9 +9,8 @@ export const adminService = {
   // Dashboard Statistics (FR-4.1)
   async getDashboardStats() {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const [totalUsers, totalGyms, totalExercises, newUsers, usersByType] = await Promise.all([
+    const [totalUsers, totalExercises, newUsers, usersByType] = await Promise.all([
       User.count({ where: { isActive: true } }),
-      Gym.count({ where: { isActive: true } }),
       Exercise.count({ where: { isActive: true } }),
       User.count({ where: { createdAt: { [Op.gte]: oneWeekAgo } } }),
       User.findAll({
@@ -23,7 +23,6 @@ export const adminService = {
 
     return {
       totalUsers,
-      totalGyms,
       totalExercises,
       newUsersThisWeek: newUsers,
       usersByType: usersByType.map(item => ({ _id: item.userType, count: Number(item.count) }))
@@ -86,65 +85,6 @@ export const adminService = {
     return { message: 'User deactivated successfully' };
   },
 
-  // Gym Management (FR-4.3)
-  async createGym(gymData, adminId) {
-    const { location } = gymData;
-    let latitude;
-    let longitude;
-
-    if (location?.coordinates?.coordinates?.length === 2) {
-      [longitude, latitude] = location.coordinates.coordinates;
-    } else if (Array.isArray(location?.coordinates) && location.coordinates.length === 2) {
-      [longitude, latitude] = location.coordinates;
-    }
-
-    const gym = await Gym.create({
-      ...gymData,
-      addedBy: adminId,
-      latitude,
-      longitude
-    });
-    return gym;
-  },
-
-  async updateGym(gymId, updates) {
-    const { location } = updates;
-    let latitude;
-    let longitude;
-
-    if (location?.coordinates?.coordinates?.length === 2) {
-      [longitude, latitude] = location.coordinates.coordinates;
-    } else if (Array.isArray(location?.coordinates) && location.coordinates.length === 2) {
-      [longitude, latitude] = location.coordinates;
-    }
-
-    if (latitude !== undefined && longitude !== undefined) {
-      updates.latitude = latitude;
-      updates.longitude = longitude;
-    }
-
-    await Gym.update(updates, { where: { id: gymId } });
-    const gym = await Gym.findByPk(gymId);
-
-    if (!gym) {
-      throw new AppError('Gym not found', 404);
-    }
-
-    return gym;
-  },
-
-  async deleteGym(gymId) {
-    const gym = await Gym.findByPk(gymId);
-    if (!gym) {
-      throw new AppError('Gym not found', 404);
-    }
-
-    gym.isActive = false;
-    await gym.save();
-
-    return { message: 'Gym deleted successfully' };
-  },
-
   // Exercise Management (FR-4.4)
   async createExercise(exerciseData, adminId) {
     const exercise = await Exercise.create({
@@ -175,5 +115,169 @@ export const adminService = {
     await exercise.save();
 
     return { message: 'Exercise deleted successfully' };
+  },
+  async createCoach(data) {
+    const { firstName, lastName, email, password, userType } = data;
+    if (!firstName || !lastName || !email || !password || !userType) {
+      throw new AppError('firstName, lastName, email, password, userType are required', 400);
+    }
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      throw new AppError('User with this email already exists', 400);
+    }
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password,
+      userType,
+      role: 'coach'
+    });
+
+    await CoachProfile.findOrCreate({ where: { userId: user.id }, defaults: { userId: user.id } });
+
+    return user;
+  },
+
+  async createClient(data) {
+    const { firstName, lastName, email, password, userType, age, goals } = data;
+    if (!firstName || !lastName || !email || !password || !userType) {
+      throw new AppError('firstName, lastName, email, password, userType are required', 400);
+    }
+
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      throw new AppError('User with this email already exists', 400);
+    }
+
+    const profile = age !== undefined ? { age } : {};
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password,
+      userType,
+      role: 'client',
+      profile
+    });
+
+    await ClientProfile.findOrCreate({
+      where: { userId: user.id },
+      defaults: { userId: user.id, goals: goals || {} }
+    });
+
+    return user;
+  },
+
+  async getCoaches(filters) {
+    const where = { role: 'coach' };
+    if (filters.isActive !== undefined) where.isActive = filters.isActive === 'true';
+
+    const users = await User.findAll({
+      where,
+      order: [['createdAt', 'DESC']]
+    });
+
+    const coachProfiles = await CoachProfile.findAll({
+      where: { userId: { [Op.in]: users.map(user => user.id) } },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const profileMap = new Map(coachProfiles.map(profile => [profile.userId, profile]));
+    return users.map(user => ({
+      user,
+      profile: profileMap.get(user.id) || null
+    }));
+  },
+
+  async getClients(filters) {
+    const where = { role: 'client' };
+    if (filters.isActive !== undefined) where.isActive = filters.isActive === 'true';
+
+    const users = await User.findAll({
+      where,
+      order: [['createdAt', 'DESC']]
+    });
+
+    const clientProfiles = await ClientProfile.findAll({
+      where: { userId: { [Op.in]: users.map(user => user.id) } },
+      order: [['createdAt', 'DESC']]
+    });
+
+    const profileMap = new Map(clientProfiles.map(profile => [profile.userId, profile]));
+    return users.map(user => ({
+      user,
+      profile: profileMap.get(user.id) || null
+    }));
+  },
+
+  async deleteCoach(userId) {
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'coach') {
+      throw new AppError('Coach not found', 404);
+    }
+
+    user.isActive = false;
+    await user.save();
+    return { message: 'Coach deactivated successfully' };
+  },
+
+  async deleteClient(userId) {
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'client') {
+      throw new AppError('Client not found', 404);
+    }
+
+    user.isActive = false;
+    await user.save();
+    return { message: 'Client deactivated successfully' };
+  },
+
+  async getCoachApplications(filters) {
+    const where = {};
+    if (filters.isApproved !== undefined) {
+      where.isApproved = filters.isApproved === 'true';
+    }
+
+    return CoachProfile.findAll({
+      where,
+      order: [['createdAt', 'DESC']]
+    });
+  },
+
+  async approveCoach(userId, adminId) {
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'coach') {
+      throw new AppError('Coach not found', 404);
+    }
+
+    let profile = await CoachProfile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await CoachProfile.create({ userId });
+    }
+
+    profile.isApproved = true;
+    profile.approvedBy = adminId;
+    profile.approvedAt = new Date();
+    await profile.save();
+
+    return profile;
+  },
+
+  async revokeCoachApproval(userId, adminId) {
+    const profile = await CoachProfile.findOne({ where: { userId } });
+    if (!profile) {
+      throw new AppError('Coach profile not found', 404);
+    }
+
+    profile.isApproved = false;
+    profile.approvedBy = adminId;
+    profile.approvedAt = new Date();
+    await profile.save();
+
+    return profile;
   }
 };

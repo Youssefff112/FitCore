@@ -1,5 +1,7 @@
 // src/Modules/Auth/auth.service.js
 import { User } from '../User/user.model.js';
+import { CoachProfile } from '../Coach/coach.model.js';
+import { ClientProfile } from '../Client/client.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
 import { sendWelcomeEmail, sendPasswordResetEmail } from '../../Utils/Emails/sendEmail.utils.js';
 import jwt from 'jsonwebtoken';
@@ -21,6 +23,14 @@ export const authService = {
       password,
       ...rest
     });
+
+    if (user.role === 'coach') {
+      await CoachProfile.findOrCreate({ where: { userId: user.id }, defaults: { userId: user.id } });
+    }
+
+    if (user.role === 'client') {
+      await ClientProfile.findOrCreate({ where: { userId: user.id }, defaults: { userId: user.id } });
+    }
 
     // Send welcome email (don't await to avoid blocking)
     sendWelcomeEmail(user).catch(err => console.error('Welcome email error:', err));
@@ -87,7 +97,7 @@ export const authService = {
     const user = await User.findOne({ where: { email } });
     if (!user) {
       // Don't reveal if user exists for security
-      return;
+      return null;
     }
 
     const resetToken = user.generatePasswordResetToken();
@@ -101,6 +111,8 @@ export const authService = {
       await user.save();
       throw new AppError('Error sending email. Please try again later.', 500);
     }
+
+    return resetToken;
   },
 
   async resetPassword(token, password) {

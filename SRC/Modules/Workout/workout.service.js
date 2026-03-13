@@ -5,31 +5,11 @@ import { AppError } from '../../Utils/appError.utils.js';
 
 export const workoutService = {
   async generateWorkoutPlan(userId) {
-    const user = await User.findByPk(userId);
-    if (!user || !user.profile || !user.profile.goal || !user.profile.experienceLevel) {
-      throw new AppError('Please complete your profile first', 400);
-    }
+    return this._generateWorkoutPlanForUser(userId);
+  },
 
-    const { goal, experienceLevel, userType, profile } = user;
-
-    // Deactivate previous plans
-    await WorkoutPlan.update(
-      { isActive: false },
-      { where: { userId, isActive: true } }
-    );
-
-    // Generate weekly schedule based on goal and experience
-    const weeklySchedule = this._generateWeeklySchedule(goal, experienceLevel, userType, profile?.homeEquipment || []);
-
-    const workoutPlan = await WorkoutPlan.create({
-      userId,
-      goal,
-      experienceLevel,
-      weeklySchedule,
-      weekStartDate: this._getStartOfWeek()
-    });
-
-    return workoutPlan;
+  async generateWorkoutPlanForUser(targetUserId, coachId) {
+    return this._generateWorkoutPlanForUser(targetUserId, coachId);
   },
 
   async getActiveWorkoutPlan(userId) {
@@ -131,6 +111,36 @@ export const workoutService = {
         pages: Math.ceil(total / limit)
       }
     };
+  },
+
+  async _generateWorkoutPlanForUser(userId, coachId = null) {
+    const user = await User.findByPk(userId);
+    if (!user || !user.profile || !user.profile.goal || !user.profile.experienceLevel) {
+      throw new AppError('Please complete your profile first', 400);
+    }
+
+    const { goal, experienceLevel, userType, profile } = user;
+
+    // Deactivate previous plans
+    await WorkoutPlan.update(
+      { isActive: false },
+      { where: { userId, isActive: true } }
+    );
+
+    // Generate weekly schedule based on goal and experience
+    const weeklySchedule = this._generateWeeklySchedule(goal, experienceLevel, userType, profile?.homeEquipment || []);
+
+    const workoutPlan = await WorkoutPlan.create({
+      userId,
+      goal,
+      experienceLevel,
+      weeklySchedule,
+      assignedByCoachId: coachId || null,
+      assignedAt: coachId ? new Date() : null,
+      weekStartDate: this._getStartOfWeek()
+    });
+
+    return workoutPlan;
   },
 
   // Helper methods
