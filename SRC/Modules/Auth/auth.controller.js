@@ -15,7 +15,7 @@ export const authController = {
 
       successResponse(res, 201, 'User registered successfully', {
         user: {
-          _id: user.id,
+          id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
@@ -37,7 +37,7 @@ export const authController = {
       
       successResponse(res, 200, 'Login successful', {
         user: {
-          _id: user.id,
+          id: user.id,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
