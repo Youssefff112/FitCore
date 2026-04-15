@@ -33,4 +33,29 @@ router.post('/schedule',
   }
 );
 
+// User endpoints for in-app notifications
+router.get('/',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const notifications = await notificationService.getUserNotifications(req.user.id);
+      successResponse(res, 200, 'Notifications retrieved successfully', { notifications });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.patch('/:id/read',
+  authenticate,
+  async (req, res, next) => {
+    try {
+      const notification = await notificationService.markAsRead(req.user.id, req.params.id);
+      successResponse(res, 200, 'Notification marked as read', { notification });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 export default router;

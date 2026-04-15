@@ -56,9 +56,36 @@ export const notificationService = {
       message,
       subject: subject || 'FitCore Notification',
       scheduledAt: scheduleDate,
-      status: 'pending'
+      status: 'pending',
+      channel: 'email'
     });
 
+    return notification;
+  },
+
+  async getUserNotifications(userId) {
+    const notifications = await Notification.findAll({
+      where: {
+        userId,
+        channel: 'in_app'
+      },
+      order: [['scheduledAt', 'DESC']],
+      limit: 100
+    });
+    return notifications;
+  },
+
+  async markAsRead(userId, notificationId) {
+    const notification = await Notification.findOne({
+      where: { id: notificationId, userId }
+    });
+
+    if (!notification) {
+      throw new AppError('Notification not found', 404);
+    }
+
+    notification.read = true;
+    await notification.save();
     return notification;
   },
 

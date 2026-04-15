@@ -9,11 +9,16 @@ Notification.init({
     type: DataTypes.INTEGER
   },
   email: {
-    type: DataTypes.STRING
+    type: DataTypes.STRING,
+    allowNull: true
   },
   channel: {
-    type: DataTypes.ENUM('email'),
-    defaultValue: 'email'
+    type: DataTypes.ENUM('email', 'in_app'),
+    defaultValue: 'in_app'
+  },
+  title: {
+    type: DataTypes.STRING,
+    defaultValue: 'New Notification'
   },
   subject: {
     type: DataTypes.STRING,
@@ -23,16 +28,33 @@ Notification.init({
     type: DataTypes.TEXT,
     allowNull: false
   },
+  icon: {
+    type: DataTypes.STRING,
+    defaultValue: 'notifications'
+  },
+  color: {
+    type: DataTypes.STRING,
+    defaultValue: '#3b82f6' // Default blue
+  },
+  type: {
+    type: DataTypes.ENUM('message', 'workout', 'meal', 'achievement', 'system'),
+    defaultValue: 'system'
+  },
+  read: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   scheduledAt: {
     type: DataTypes.DATE,
-    allowNull: false
+    defaultValue: DataTypes.NOW
   },
   status: {
     type: DataTypes.ENUM('pending', 'sent', 'failed'),
-    defaultValue: 'pending'
+    defaultValue: 'sent' // Changed default to 'sent' for immediate in-app
   },
   sentAt: {
-    type: DataTypes.DATE
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
   error: {
     type: DataTypes.TEXT
