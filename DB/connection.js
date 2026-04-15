@@ -28,6 +28,7 @@ export const connectDB = async () => {
     await import('../SRC/Modules/Progress/progress.model.js');
     await import('../SRC/Modules/Vision/vision.model.js');
     await import('../SRC/Modules/Chatbot/chatbot.model.js');
+    await import('../SRC/Modules/Messaging/messaging.model.js');
 
     await sequelize.authenticate();
     await sequelize.sync();

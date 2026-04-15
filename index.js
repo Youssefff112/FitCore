@@ -1,5 +1,6 @@
-// src/index.js
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,7 +15,32 @@ import coachManagementRoutes from './SRC/Modules/Coach/coach.management.routes.j
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+app.set('io', io);
+
 const PORT = process.env.PORT || 5000;
+
+// Socket Connection Handling
+io.on('connection', (socket) => {
+  console.log(`🔌 New client connected: ${socket.id}`);
+  
+  // Clients join a private room based on their userId
+  socket.on('join_room', (userId) => {
+    socket.join(userId.toString());
+    console.log(`User ${userId} joined their personal room`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
+  });
+});
+
 
 // Security Middlewares
 app.use(helmet());
@@ -60,7 +86,7 @@ const startServer = async () => {
   try {
     await connectDB();
     startNotificationScheduler();
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`✅ FitCore Backend running on port ${PORT}`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     });
