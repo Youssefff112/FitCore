@@ -12,8 +12,33 @@ export const coachService = {
     return Coach.create(data);
   },
 
-  async getAllCoaches() {
-    return Coach.findAll({ order: [['createdAt', 'DESC']] });
+  async getAllCoaches(filters = {}) {
+    const { specialty, minRating, page = 1, limit = 20 } = filters;
+    const offset = (page - 1) * limit;
+
+    const where = {};
+    if (minRating) {
+      where.rating = { [Op.gte]: minRating };
+    }
+
+    // Filter by specialty if provided
+    let query = {
+      where,
+      order: [['rating', 'DESC']],
+      limit,
+      offset
+    };
+
+    let coaches = await CoachProfile.findAll(query);
+
+    // Filter by specialty (since it's JSONB, we need to do it in JS if not using raw SQL)
+    if (specialty) {
+      coaches = coaches.filter(coach =>
+        coach.specialties && coach.specialties.includes(specialty)
+      );
+    }
+
+    return coaches;
   },
 
   async getCoachById(id) {

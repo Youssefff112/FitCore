@@ -1,12 +1,12 @@
 // src/Modules/Messaging/messaging.routes.js
 import { Router } from 'express';
-import { protect } from '../Auth/auth.controller.js';
+import { authenticate } from '../../Middlewares/auth.middleware.js';
 import * as messagingController from './messaging.controller.js';
 
 const router = Router();
 
 // All routes are protected
-router.use(protect);
+router.use(authenticate);
 
 router.get('/', messagingController.getConversations);
 router.get('/:conversationId/messages', messagingController.getMessages);

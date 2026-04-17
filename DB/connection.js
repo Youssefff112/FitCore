@@ -23,6 +23,7 @@ export const connectDB = async () => {
     await import('../SRC/Modules/Workout/workout.model.js');
     await import('../SRC/Modules/Notification/notification.model.js');
     await import('../SRC/Modules/Coach/coach.model.js');
+    await import('../SRC/Models/CoachReview.js');
     await import('../SRC/Modules/Client/client.model.js');
     await import('../SRC/Modules/Subscription/subscription.model.js');
     await import('../SRC/Modules/Progress/progress.model.js');
