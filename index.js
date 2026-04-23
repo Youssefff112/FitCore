@@ -9,7 +9,7 @@ import { connectDB } from './DB/connection.js';
 import { globalErrorHandler } from './SRC/Utils/globalErrorHandler.utils.js';
 import appController from './app.controller.js';
 import { startNotificationScheduler } from './SRC/Modules/Notification/notification.scheduler.js';
-import coachManagementRoutes from './SRC/Modules/Coach/coach.management.routes.js';
+// Note: coach management (admin CRUD) is served via /api/v1/admin — see admin.routes.js
 
 // Load environment variables
 dotenv.config();
@@ -73,7 +73,7 @@ app.get('/health', (req, res) => {
 
 // Mount Routes
 app.use('/api/v1', appController);
-app.use('/api/coaches', coachManagementRoutes);
+// /api/coaches (legacy) removed — all routes are under /api/v1 via appController
 
 // 404 Handler
 app.use((req, res) => {

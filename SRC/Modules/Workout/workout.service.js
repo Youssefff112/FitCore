@@ -4,6 +4,17 @@ import { User } from '../User/user.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
 
 export const workoutService = {
+  // ─── AI INTEGRATION POINT ────────────────────────────────────────────────────
+  // TODO (AI Team): Replace `_generateWorkoutPlanForUser` with a real AI-powered
+  // workout planner. Suggested approach:
+  //   1. Pull user profile (goal, experienceLevel, userType, homeEquipment) from DB.
+  //   2. Fetch the Exercise library from DB (GET /api/v1/exercises) to supply real
+  //      exercises to the AI instead of hardcoded names.
+  //   3. Send a structured prompt to the AI model (e.g. Google Gemini / GPT-4o)
+  //      that returns a weekly JSON schedule matching the WorkoutPlan.weeklySchedule schema.
+  //   4. Validate and save the returned plan to the `workout_plans` table.
+  // See: workout.model.js for the WorkoutPlan schema.
+  // ─────────────────────────────────────────────────────────────────────────────
   async generateWorkoutPlan(userId) {
     return this._generateWorkoutPlanForUser(userId);
   },

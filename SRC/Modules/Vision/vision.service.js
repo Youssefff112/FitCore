@@ -3,6 +3,19 @@ import { VisionSession } from './vision.model.js';
 import { AppError } from '../../Utils/appError.utils.js';
 
 export const visionService = {
+  // ─── COMPUTER VISION INTEGRATION POINT ───────────────────────────────────────
+  // TODO (CV Team): `startSession` creates the DB record for a vision session.
+  // The real-time pose estimation and rep-counting logic should run on the mobile
+  // client (React Native) using a TFLite / MediaPipe model, then call:
+  //   PATCH /api/v1/vision/sessions/:id  with { repsCount, accuracyScore, feedback, rawData }
+  // after each set or at the end of the session.
+  //
+  // If server-side CV is needed (e.g. for video upload analysis), implement it here:
+  //   1. Receive an uploaded video or image frames via multipart upload.
+  //   2. Run inference (e.g. Google Cloud Video Intelligence / a custom TF Serving model).
+  //   3. Return repsCount, accuracyScore, and per-frame feedback.
+  //   4. Call `updateSession` to persist results.
+  // ─────────────────────────────────────────────────────────────────────────────
   async startSession(userId, data) {
     const { exerciseName, startedAt } = data;
     if (!exerciseName) {

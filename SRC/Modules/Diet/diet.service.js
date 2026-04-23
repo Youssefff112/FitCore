@@ -4,6 +4,16 @@ import { AppError } from '../../Utils/appError.utils.js';
 import { Op } from 'sequelize';
 
 export const dietService = {
+  // ─── AI INTEGRATION POINT ────────────────────────────────────────────────────
+  // TODO (AI Team): Replace `_generateDietPlanForUser` with a real AI-powered meal
+  // planner. Suggested approach:
+  //   1. Pull user profile (goals, calories, dietary preferences, allergies) from DB.
+  //   2. Build a structured prompt and send it to the AI model (e.g. Google Gemini
+  //      or OpenAI GPT-4o) with few-shot examples of the expected JSON meal plan format.
+  //   3. Parse the AI response and validate it against a Joi schema before saving to DB.
+  //   4. Store the generated plan in the `diet_plans` table as usual.
+  // See: diet.model.js for the DietPlan schema, diet.service.js _generateDietPlanForUser for context.
+  // ─────────────────────────────────────────────────────────────────────────────
   async generateDietPlan(userId) {
     return this._generateDietPlanForUser(userId);
   },

@@ -89,6 +89,14 @@ export const notificationService = {
     return notification;
   },
 
+  async markAllAsRead(userId) {
+    const [count] = await Notification.update(
+      { read: true },
+      { where: { userId, read: false, channel: 'in_app' } }
+    );
+    return count;
+  },
+
   async processScheduledNotifications() {
     const now = new Date();
     const due = await Notification.findAll({

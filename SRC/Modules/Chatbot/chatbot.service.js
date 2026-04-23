@@ -108,7 +108,20 @@ export const chatbotService = {
     return config;
   },
 
+  // ─── AI INTEGRATION POINT ────────────────────────────────────────────────────
+  // TODO (AI Team): Replace `_buildBotResponse` with a real AI chatbot call.
+  // Suggested approach:
+  //   1. Build a system prompt that includes:
+  //      - The coach's configured persona, tone, and coachingStyle (from ChatbotConfig).
+  //      - The client's profile (goals, experience, dietary preferences).
+  //      - The last N messages from ChatMessage history for context.
+  //   2. Send the prompt to the AI model (e.g. Google Gemini / OpenAI GPT-4o).
+  //   3. Return the AI text response and save it as a 'bot' ChatMessage.
+  //   4. Handle rate limits and stream responses if needed.
+  // See: chatbot.model.js for ChatbotConfig fields (persona, tone, coachingStyle).
+  // ─────────────────────────────────────────────────────────────────────────────
   _buildBotResponse(message, config) {
+    // PLACEHOLDER — replace this entire method with an async AI call (see comment above)
     const persona = config?.persona || 'Your coach';
     const tone = config?.tone || 'encouraging';
     const style = config?.coachingStyle || 'goal-oriented';
